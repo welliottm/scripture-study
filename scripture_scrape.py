@@ -1,6 +1,7 @@
 import logging
-import requests
 import re
+
+from requests_html import HTMLSession
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,6 +24,7 @@ bom_books = {
 }
 
 def get_chapter_response(library, book, chapter_num):
+    session = HTMLSession()
     url = ('https://www.churchofjesuschrist.org/study/scriptures/'
            + library
            + '/'
@@ -30,7 +32,7 @@ def get_chapter_response(library, book, chapter_num):
            + '/'
            + chapter_num
            + '?lang=eng')
-    chapter_response = requests.get(url)
+    chapter_response = session.get(url)
     return chapter_response
 
 def get_chapter_content(library, book_dict):
