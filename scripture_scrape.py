@@ -1,7 +1,8 @@
 import logging
 import re
 
-from requests_html import HTMLSession
+import requests
+from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -18,13 +19,13 @@ bom_books = {
              # 'hel':16,
              # '3-ne':30,
              '4-ne':1,
-             'morm':9,
+             # 'morm':9,
              # 'ether':15,
              # 'moro':10,
 }
 
 def get_chapter_response(library, book, chapter_num):
-    session = HTMLSession()
+    logging.debug(f'Retreiving content for chapter {chapter_num}')
     url = ('https://www.churchofjesuschrist.org/study/scriptures/'
            + library
            + '/'
@@ -32,22 +33,25 @@ def get_chapter_response(library, book, chapter_num):
            + '/'
            + chapter_num
            + '?lang=eng')
-    chapter_response = session.get(url)
-    return chapter_response
+    response = requests.get(url)
+    logging.debug(f'Received HTTP status code: {response.status_code}')
+    soup = BeautifulSoup(response.content, features='lxml')
+    article = soup.article
+    # Remove all superscript markers used for footnotes
+    for sup in article('sup'):
+        sup.decompose()
+    return article
 
 def get_chapter_content(library, book_dict):
     content_dict = {}
     for book in book_dict:
-        logging.debug(f'Iterating over {book}')
+        logging.debug(f'Starting iteration for book:{book} in library:{library}')
         for chapter_num in range(1, (book_dict[book] + 1)):
-            logging.debug(f'Retreiving content for chapter {chapter_num}')
             response = get_chapter_response(library, book, str(chapter_num))
-            logging.debug(f'Received status code {response.status_code}')
-            logging.debug('Retreived response')
-            content_dict.update({(book+str(chapter_num)):response.content})
             logging.debug('Adding response content to content_dict')
+            content_dict.update({(book + '--ch' + str(chapter_num)):response.text})
     return content_dict
 
 if __name__=='__main__':
     chapter_content = get_chapter_content('bofm', bom_books)
-    print(chapter_content['morm2'])
+    print(chapter_content)
