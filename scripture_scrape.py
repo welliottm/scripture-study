@@ -36,11 +36,17 @@ def get_chapter_response(library, book, chapter_num):
     response = requests.get(url)
     logging.debug(f'Received HTTP status code: {response.status_code}')
     soup = BeautifulSoup(response.content, features='lxml')
-    article = soup.article
+    body = soup.find('div', {'class': 'body-block'})
+    # Add a space after each Verse
+    for verse in body.find_all('p'):
+        verse.insert_after(' ')
     # Remove all superscript markers used for footnotes
-    for sup in article('sup'):
+    for sup in body('sup'):
         sup.decompose()
-    return article
+    # Remove Verse numbers
+    for sup in body('span'):
+        sup.decompose()
+    return body
 
 def get_chapter_content(library, book_dict):
     content_dict = {}
@@ -55,3 +61,5 @@ def get_chapter_content(library, book_dict):
 if __name__=='__main__':
     chapter_content = get_chapter_content('bofm', bom_books)
     print(chapter_content)
+    # with open('test_output.txt', mode='wt', encoding='utf-8') as file:
+    #     file.write(chapter_content['4-ne--ch1'])
