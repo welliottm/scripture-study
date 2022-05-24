@@ -9,6 +9,48 @@ from nltk.tokenize import word_tokenize
 
 logging.basicConfig(level=logging.DEBUG)
 
+ot_books = {
+            # 'gen':50,
+            # 'ex':40,
+            # 'lev':27,
+            # 'num':36,
+            'deut':34,
+            # 'josh':24,
+            # 'judg':21,
+            # 'ruth':4,
+            # '1-sam':31,
+            # '2-sam':24,
+            # '1-kgs':22,
+            # '2-kgs':25,
+            # '1-chr':29,
+            # '2-chr':36,
+            # 'ezra':10,
+            # 'neh':13,
+            # 'esth':10,
+            # 'job':42,
+            # 'ps':150,
+            # 'prov':31,
+            # 'eccl':12,
+            # 'song':8,
+            # 'isa':66,
+            # 'jer':52,
+            # 'lam':5,
+            # 'ezek':48,
+            # 'dan':12,
+            # 'hosea':14,
+            # 'joel':3,
+            # 'amos':9,
+            # 'obad':1,
+            # 'jonah':4,
+            # 'micah':7,
+            # 'nahum':3,
+            # 'hab':3,
+            # 'zeph':3,
+            # 'hag':2,
+            # 'zech':14,
+            # 'mal':4
+}
+
 bom_books = {
              '1-ne':22,
              '2-ne':33,
@@ -40,15 +82,19 @@ def get_chapter_response(library, book, chapter_num):
     logging.debug(f'Received HTTP status code: {response.status_code}')
     soup = BeautifulSoup(response.content, features='lxml')
     body = soup.find('div', {'class': 'body-block'})
+    # Remove span garbage
+    span_to_remove = ['verse-number','clarity-word','para-mark']
+    for element in span_to_remove:
+        for item in body.find_all('span', {'class', element}):
+            item.decompose()
+    # Remove sup garbage
+    sup_to_remove = ['marker']
+    for element in sup_to_remove:
+        for item in body.find_all('sup', {'class', element}):
+            item.decompose()
     # Add a space after each Verse
     for verse in body.find_all('p'):
         verse.insert_after(' ')
-    # Remove all superscript markers used for footnotes
-    for sup in body('sup'):
-        sup.decompose()
-    # Remove Verse numbers
-    for sup in body('span'):
-        sup.decompose()
     return body
 
 def get_chapter_content(library, book_dict):
@@ -76,7 +122,7 @@ def tokenize(text_string, min_word_length):
     tokens = word_tokenize(text_string)
     # Define stopwords, and add custom words
     scripture_stopwords = stopwords.words('english')
-    extra_words = ['came', 'come', 'thus', 'thy', 'unto']
+    extra_words = ['also', 'came', 'come', 'said', 'say', 'thou', 'thus', 'thy', 'unto', 'yea']
     scripture_stopwords.extend(extra_words)
     # Select words that meet the following criteria:
     # (1) Word is alphabetic
@@ -92,10 +138,10 @@ def count_words(word_list):
     return word_counter
 
 if __name__=='__main__':
-    chapter_content = get_chapter_content('bofm', bom_books)
+    chapter_content = get_chapter_content('ot', ot_books)
     combined_text = combine_text(dictionary=chapter_content)
+    with open('ot_text.txt', mode='wt', encoding='utf-8') as file:
+        file.write(combined_text)
     tokens = tokenize(text_string=combined_text, min_word_length=3)
     word_count = count_words(word_list=tokens)
     print(word_count)
-    # with open('test_output.txt', mode='wt', encoding='utf-8') as file:
-    #     file.write(chapter_content['4-ne--ch1'])
