@@ -1,3 +1,5 @@
+import csv
+import json
 import logging
 import re
 import requests
@@ -9,65 +11,6 @@ from nltk.tokenize import word_tokenize
 
 logging.basicConfig(level=logging.DEBUG)
 
-ot_books = {
-            'gen':50,
-            'ex':40,
-            'lev':27,
-            'num':36,
-            'deut':34,
-            'josh':24,
-            'judg':21,
-            'ruth':4,
-            '1-sam':31,
-            '2-sam':24,
-            '1-kgs':22,
-            '2-kgs':25,
-            '1-chr':29,
-            '2-chr':36,
-            'ezra':10,
-            'neh':13,
-            'esth':10,
-            'job':42,
-            'ps':150,
-            'prov':31,
-            'eccl':12,
-            'song':8,
-            'isa':66,
-            'jer':52,
-            'lam':5,
-            'ezek':48,
-            'dan':12,
-            'hosea':14,
-            'joel':3,
-            'amos':9,
-            'obad':1,
-            'jonah':4,
-            'micah':7,
-            'nahum':3,
-            'hab':3,
-            'zeph':3,
-            'hag':2,
-            'zech':14,
-            'mal':4
-}
-
-bom_books = {
-             '1-ne':22,
-             '2-ne':33,
-             'jacob':7,
-             'enos':1,
-             'jarom':1,
-             'omni':1,
-             'w-of-m':1,
-             'mosiah':29,
-             'alma':63,
-             'hel':16,
-             '3-ne':30,
-             '4-ne':1,
-             'morm':9,
-             'ether':15,
-             'moro':10,
-}
 
 def get_chapter_response(library, book, chapter_num):
     logging.debug(f'Retreiving content for chapter {chapter_num}')
@@ -97,15 +40,17 @@ def get_chapter_response(library, book, chapter_num):
         verse.insert_after(' ')
     return body
 
-def get_chapter_content(library, book_dict):
-    content_dict = {}
-    for book in book_dict:
-        logging.debug(f'Starting iteration for book:{book} in library:{library}')
-        for chapter_num in range(1, (book_dict[book] + 1)):
-            response = get_chapter_response(library, book, str(chapter_num))
-            logging.debug('Adding response content to content_dict')
-            content_dict.update({(book + '--ch' + str(chapter_num)):response.text})
-    return content_dict
+def get_chapter_content():
+    with open('books_chapters.csv') as csv_file:
+        books_chapters = csv.DictReader(csv_file)
+        content_dict = {}
+        for line in books_chapters:
+            logging.debug(f"Starting iteration for book:{line['book']} in library:{line['library']}")
+            for chapter_num in range(1, (int(line['total_chapters']) + 1)):
+                response = get_chapter_response(library=line['library'], book=line['book'], chapter_num=str(chapter_num))
+                logging.debug('Adding response content to content_dict')
+                content_dict.update({(line['book'] + '--ch' + str(chapter_num)):response.text})
+        return content_dict
 
 def combine_text(dictionary):
     '''Combines all dictionary values into one string. This concatenates all scripture
@@ -138,9 +83,9 @@ def count_words(word_list):
     return word_counter
 
 if __name__=='__main__':
-    chapter_content = get_chapter_content('ot', ot_books)
+    chapter_content = get_chapter_content()
     combined_text = combine_text(dictionary=chapter_content)
-    with open('ot_text.txt', mode='wt', encoding='utf-8') as file:
+    with open('text_output.txt', mode='wt', encoding='utf-8') as file:
         file.write(combined_text)
     tokens = tokenize(text_string=combined_text, min_word_length=3)
     word_count = count_words(word_list=tokens)
